@@ -2,8 +2,8 @@ import { useState } from 'react';
 import axios from 'axios';
 const PayinApi = () => {
   const [mchId, setMchId] = useState('1000');
-  const [currency, setCurrency] = useState('PKR');
-  const [payType, setPayType] = useState('JAZZCASH');
+  const [currency, setCurrency] = useState('BDT');
+  const [payType, setPayType] = useState('BKASH');
   const [money, setMoney] = useState('100');
   const [notifyUrl, setNotifyUrl] = useState('https://www.sandbox.wpay.one/callback/payin');
   const [returnUrl, setReturnUrl] = useState('https://www.google.com');
@@ -37,7 +37,7 @@ const PayinApi = () => {
       const callbackData = {
         mchId: parsedBody.mchId,
         // out_trade_no: parsedBody.out_trade_no || data.data.out_trade_no, // Use the one returned by the API if available
-        currency: "PKR",
+        currency: "BDT",
         money: parsedBody.money,
         attach: "",
         pay_money: parsedBody.money,

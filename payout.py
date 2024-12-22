@@ -33,9 +33,9 @@ unique_order_id = str(uuid.uuid4().hex)  # Generates a unique hexadecimal string
 # Request parameters for the Payout API
 params = {
     "mchId": "1000",
-    "currency": "PKR",
+    "currency": "BDT",
     "out_trade_no": unique_order_id,  # Use the unique order ID
-    "pay_type": "JAZZCASH",
+    "pay_type": "BKASH",
     "account": "03123456789",
     "userName": "zhang san",  # Space in name will be URL-encoded automatically by `requests`
     "money": "100",

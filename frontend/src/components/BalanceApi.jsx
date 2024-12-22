@@ -42,7 +42,7 @@ const BalanceApi = () => {
           id="mchId"
           value={mchId}
           onChange={(e) => setMchId(e.target.value)}
-          className="mt-1 p-2 border rounded-md w-full"
+          className="mt-1 p-2 border rounded-md w-full text-black"
           required
         />
       </div>

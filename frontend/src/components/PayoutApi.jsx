@@ -2,8 +2,8 @@
 import { useState } from 'react';
 const PayoutApi = () => {
     const [mchId, setMchId] = useState('1000');
-    const [currency, setCurrency] = useState('PKR');
-    const [payType, setPayType] = useState('JAZZCASH');
+    const [currency, setCurrency] = useState('BDT');
+    const [payType, setPayType] = useState('BKASH');
     const [account, setAccount] = useState('03123456789');
     const [username, setUsername] = useState('ramesh.sutar');
     const [money, setMoney] = useState('500');

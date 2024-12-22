@@ -26,9 +26,9 @@ unique_order_id = 2024121613000002  # Generates a unique hexadecimal string
 # Request parameters
 params = {
     "mchId": "1000",
-    "currency": "PKR",
+    "currency": "BDT",
     "out_trade_no": unique_order_id,  # Use the unique order ID
-    "pay_type": "JAZZCASH",
+    "pay_type": "BKASH",
     "money": "100",
     "attach": "",
     "notify_url": "https://www.sandbox.wpay.one/callback/payin",

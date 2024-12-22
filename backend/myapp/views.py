@@ -54,6 +54,7 @@ BALANCE_API = "https://sandbox.wpay.one/v1/balance"
 PAYIN_QUERY_URL= "https://sandbox.wpay.one/v1/Query/Collect"
 PAYOUT_QUERY_URL= "https://sandbox.wpay.one/v1/Query/Payout"
 API_KEY = "eb6080dbc8dc429ab86a1cd1c337975d"
+API_KEY2="af566094b5a5412cb28a2b7d7b09d06a"
 PAYIN_CALLBACK= "https://www.sandbox.wpay.one/callback/payin"
 @csrf_exempt
 def get_balance(request):
@@ -223,16 +224,7 @@ def payin_api(request):
                 "notify_url": notify_url,
                 "returnUrl": return_url
             }
-#              'mchId': ' 1361',
-#   'out_trade_no': ' 20210051255',
-#   'currency': ' INR',
-#   'money': ' 500',
-#   'attach': ' ',
-#   'pay_money': ' 500',
-#   'merchant_ratio': ' 5',
-#   'real_money': ' 475',
-#   'status': ' 1',
-#   'sign': ' 2d203a20356af2d9a4474226936c1feb' 
+ 
 
             # Generate the signature
             params["sign"] = generate_signature(params, API_KEY)
@@ -354,7 +346,7 @@ def payout_api(request):
                     # Return a JSON response
                     return JsonResponse({
                         "success": True, 
-                        "data": dict(response_data.get("data", {}).items()),  # Convert dict_items to a regular dict
+                        "data": dict(response_data.get("data", {}).items()),
                        
                     }, status=201)
                 else:
