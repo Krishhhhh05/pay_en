@@ -105,6 +105,7 @@ def create_admin(request):
             password = data.get("password")
             percent= data.get("percent")
             role = "admin"  # Fixed role for admins
+            balance = 0
 
             # Check if required fields are provided
             if not username or not password:
@@ -124,6 +125,7 @@ def create_admin(request):
                 "password": password,
                 "percent": percent,
                 "role": role,
+                "balance": balance
             }
             users_collection.insert_one(user_data)
 
@@ -134,7 +136,41 @@ def create_admin(request):
 
     return JsonResponse({"error": "Invalid request method"}, status=405)
 
+@csrf_exempt
+def remove_admin(request):
+    if request.method == "DELETE":
+        try:
+            data = json.loads(request.body)
+            username = data.get("username")
 
+            if not username:
+                return JsonResponse({"error": "Username is required"}, status=400)
+
+            mongo_helper = MongoDBHelper()
+            users_collection = mongo_helper.db["users"]
+
+            if users_collection.find_one({"username": username}):
+                users_collection.delete_one({"username": username})
+
+            return JsonResponse({"success": "Admin removed successfully"}, status=201)
+
+        except Exception as e:
+            return JsonResponse({"error": f"Unexpected error: {str(e)}"}, status=500)
+
+    return JsonResponse({"error": "Invalid request method"}, status=405)
+
+@csrf_exempt
+def get_users(request):
+    if request.method == "GET":
+        try:
+            mongo_helper = MongoDBHelper()
+            users_collection = mongo_helper.db["users"]
+            users = list(users_collection.find({}, {"_id": 0, "username": 1, "percent": 2 ,"role": 3}))
+            return JsonResponse({"users": users}, status=200)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+    else:
+        return JsonResponse({"error": "Invalid HTTP method. Use GET."}, status=405)
 
 @csrf_exempt
 def get_balance(request):
@@ -181,6 +217,21 @@ def get_balance(request):
             return JsonResponse({"error": str(e)}, status=500)
     else:
         return JsonResponse({"error": "Invalid HTTP method. Use POST."}, status=405)
+    
+@csrf_exempt
+def get_admins_balance(request):
+    if request.method == "GET":
+        try:
+            mongo_helper = MongoDBHelper()
+            users_collection = mongo_helper.db["users"]
+            
+            users = list(users_collection.find({"role": "admin"}, {"_id": 0, "username": 1, "balance": 1}))
+
+            return JsonResponse({"users": users}, status=200)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+    else:
+        return JsonResponse({"error": "Invalid HTTP method. Use GET."}, status=405)
 
 @csrf_exempt
 def payin_query(request):
