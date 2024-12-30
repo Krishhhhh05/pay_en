@@ -74,7 +74,6 @@ def login(request):
             password = data.get("password")
 
             # Find the user in MongoDB
-            users_collection = db["users"]
             mongo_helper = MongoDBHelper()
             users_collection = mongo_helper.db['users']
             
@@ -220,18 +219,22 @@ def get_balance(request):
     
 @csrf_exempt
 def get_admins_balance(request):
-    if request.method == "GET":
+    if request.method == "POST":
         try:
-            mongo_helper = MongoDBHelper()
-            users_collection = mongo_helper.db["users"]
-            
-            users = list(users_collection.find({"role": "admin"}, {"_id": 0, "username": 1, "balance": 1}))
+            body = json.loads(request.body.decode('utf-8'))
+            username = body.get("username")
 
-            return JsonResponse({"users": users}, status=200)
+
+            mongo_helper = MongoDBHelper()
+            collection = mongo_helper.db["test"]
+            
+            txn = list(collection.find({"username": username}, {"_id": 0}))
+
+            return JsonResponse({"users": txn}, status=200)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
     else:
-        return JsonResponse({"error": "Invalid HTTP method. Use GET."}, status=405)
+        return JsonResponse({"error": "Invalid HTTP method. Use POST."}, status=405)
 
 @csrf_exempt
 def payin_query(request):
