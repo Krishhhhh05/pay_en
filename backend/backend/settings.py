@@ -28,7 +28,8 @@ username = urllib.parse.quote_plus("krisha")
 password = urllib.parse.quote_plus("mernstack")
 
 # MongoDB connection string with encoded credentials
-MONGO_URI = "mongodb+srv://krisha:mernstack@cluster0.0hkxx0e.mongodb.net/retryWrites=true&w=majority&appName=Cluster0"
+MONGO_URI = "mongodb+srv://krisha:mernstack@cluster0.0hkxx0e.mongodb.net/"
+
 # MONGO_URI = f"mongodb+srv://{username}:{password}@cluster0.cp6fe.mongodb.net/payment"  # Specify your database here
 # MONGO_URI = f"mongodb://localhost:27017/"  # Specify your database here 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -41,6 +42,7 @@ ALLOWED_HOSTS = ['*']
 # Application definition
 
 INSTALLED_APPS = [
+    "corsheaders",
     "myapp",
     "django.contrib.admin",
     "django.contrib.auth",
@@ -48,7 +50,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-     'corsheaders',
+    
 ]
 
 MIDDLEWARE = [

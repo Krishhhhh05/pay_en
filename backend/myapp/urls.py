@@ -2,6 +2,9 @@ from django.urls import path
 from . import views
 # from .views import assign_card_to_section
 urlpatterns = [
+    path('create_admin/', views.create_admin, name='create_admin'),  
+    path('login/', views.login, name='login'),  
+
     path('api/get_balance/', views.get_balance, name='get_balance'),  
     path('api/payin_api/', views.payin_api, name='payin_api'),  
     path('api/payout_api/', views.payout_api, name='payout_api'),  

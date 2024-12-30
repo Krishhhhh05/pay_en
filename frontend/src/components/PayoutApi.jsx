@@ -1,7 +1,7 @@
 // components/PayoutApi.js
 import { useState } from 'react';
 const PayoutApi = () => {
-    const [mchId, setMchId] = useState('1000');
+    const [mchId, setMchId] = useState('1701');
     const [currency, setCurrency] = useState('BDT');
     const [payType, setPayType] = useState('BKASH');
     const [account, setAccount] = useState('03123456789');
@@ -9,18 +9,30 @@ const PayoutApi = () => {
     const [money, setMoney] = useState('500');
     const [notifyUrl, setNotifyUrl] = useState('callback_payout_url');
     const [reserve1, setReserve1] = useState('1234567890123');
+
   
     const handleSubmit = async (e) => {
       e.preventDefault();
-      const body = JSON.stringify({
-        mchId, currency, pay_type: payType, account, userName: username, money, notify_url: notifyUrl, reserve1
-      });
+      const formBody = new URLSearchParams({
+        mchId, currency, pay_type: payType, account, userName: username, money
+      }).toString();
+      // const formBody = new URLSearchParams({
+      //   mchId,
+      //   currency,
+      //   pay_type: payType,
+      //   money,
+      //   notify_url: notifyUrl,
+      //   returnUrl,
+      // }).toString();
+    
+      // console.log("Input body:", formBody);
+      console.log("Input body:", formBody);
   
       try {
         const response = await fetch('http://127.0.0.1:8000/myapp/api/payout_api/', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body:formBody
         });
   
         const data = await response.json();

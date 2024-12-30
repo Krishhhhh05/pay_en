@@ -9,8 +9,8 @@ class MongoDBHelper:
             raise ValueError("Invalid MONGO_URI in settings")
 
         self.client = MongoClient(settings.MONGO_URI)
-        self.db = self.client['payment']  # Database name
-        self.collection = self.db['payin']  # Collection name
+        self.db = self.client['okpay']  # Database name
+        # self.collection = self.db['payin']  # Collection name
         
 
 def get_latest_document_value(self):

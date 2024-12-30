@@ -10,6 +10,8 @@ from pymongo import MongoClient
 import urllib.parse
 import pymongo
 import time
+from urllib.parse import urlencode
+from urllib.parse import parse_qs
 
 
 # Function to generate the signature
@@ -48,14 +50,92 @@ def generate_transaction_id():
 
 
 # API details
+address= "https://api.wpay.one"
 PAYIN_API= "https://sandbox.wpay.one/v1/Collect"
+PAYIN_API2= "https://api.wpay.one/v1/Collect"
 PAYOUT_API= "https://sandbox.wpay.one/v1/Payout"
-BALANCE_API = "https://sandbox.wpay.one/v1/balance"
+PAYOUT_API2= "https://api.wpay.one/v1/Payout"
+BALANCE_API = "https://api.wpay.one/v1/balance"
+# https://{{host}}/v1/balance
 PAYIN_QUERY_URL= "https://sandbox.wpay.one/v1/Query/Collect"
 PAYOUT_QUERY_URL= "https://sandbox.wpay.one/v1/Query/Payout"
 API_KEY = "eb6080dbc8dc429ab86a1cd1c337975d"
 API_KEY2="af566094b5a5412cb28a2b7d7b09d06a"
 PAYIN_CALLBACK= "https://www.sandbox.wpay.one/callback/payin"
+
+
+
+@csrf_exempt
+def login(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            username = data.get("username")
+            password = data.get("password")
+
+            # Find the user in MongoDB
+            users_collection = db["users"]
+            mongo_helper = MongoDBHelper()
+            users_collection = mongo_helper.db['users']
+            
+            user = users_collection.find_one({"username": username})
+            if not user:
+                return JsonResponse({"error": "Invalid username or password"}, status=401)
+
+            # Verify the password
+            if password != user["password"]:
+                return JsonResponse({"error": "Invalid username or password"}, status=401)
+
+            # Authentication successful
+            return JsonResponse({"success": "Login successful", "role": user["role"]}, status=200)
+
+        except Exception as e:
+            return JsonResponse({"error": f"Unexpected error: {str(e)}"}, status=500)
+
+    return JsonResponse({"error": "Invalid request method"}, status=405)
+
+
+
+@csrf_exempt
+def create_admin(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            username = data.get("username")
+            password = data.get("password")
+            percent= data.get("percent")
+            role = "admin"  # Fixed role for admins
+
+            # Check if required fields are provided
+            if not username or not password:
+                return JsonResponse({"error": "Username and password are required"}, status=400)
+
+            # Initialize MongoDBHelper and connect to 'users' collection
+            mongo_helper = MongoDBHelper()
+            users_collection = mongo_helper.db["users"]
+
+            # Check if the username already exists
+            if users_collection.find_one({"username": username}):
+                return JsonResponse({"error": "Username already exists"}, status=400)
+
+            # Insert the new admin user into the collection
+            user_data = {
+                "username": username,
+                "password": password,
+                "percent": percent,
+                "role": role,
+            }
+            users_collection.insert_one(user_data)
+
+            return JsonResponse({"success": "Admin created successfully", "username": username}, status=201)
+
+        except Exception as e:
+            return JsonResponse({"error": f"Unexpected error: {str(e)}"}, status=500)
+
+    return JsonResponse({"error": "Invalid request method"}, status=405)
+
+
+
 @csrf_exempt
 def get_balance(request):
     if request.method == "POST":
@@ -77,7 +157,7 @@ def get_balance(request):
             }
 
             # Generate the signature
-            params["sign"] = generate_signature(params, API_KEY)
+            params["sign"] = generate_signature(params, API_KEY2)
 
             # Make the API request
             response = requests.post(BALANCE_API, data=params)
@@ -115,7 +195,7 @@ def payin_query(request):
 
             if not mch_id or not out_trade_no:
                 return JsonResponse({"error": "Missing required parameters: mchId and out_trade_no."}, status=400)
-
+            
             # Request parameters
             params = {
                 "mchId": mch_id,
@@ -190,30 +270,40 @@ def payout_query(request):
         return JsonResponse({"error": "Invalid HTTP method. Use POST."}, status=405)
 
 payin_order_id=""
+
+
 @csrf_exempt
 def payin_api(request):
-    global payin_order_id
     if request.method == "POST":
         try:
-            # Parse request body
-            body = json.loads(request.body.decode('utf-8'))
+            # Parse form-encoded data
+            if request.POST:
+                body_input = request.body.decode('utf-8')
+                body = parse_qs(body_input)
+                # print(body)
 
-            # Required parameters
-            mch_id = body.get("mchId")
-            currency = body.get("currency")
-            pay_type = body.get("pay_type")
-            money = body.get("money")
-            notify_url = body.get("notify_url")
-            return_url = body.get("returnUrl")
+                mch_id = body.get('mchId', [None])[0]# Default to None if key not found
+                currency = body.get('currency', [None])[0]
+                pay_type = body.get('pay_type', [None])[0]
+                money = body.get('money', [None])[0]
+                notify_url = body.get('notify_url', [None])[0]
+                return_url = body.get('returnUrl', [None])[0]
+
+                # Print extracted fields
+                print("Merchant ID:", mch_id)
+                print("Currency:", currency)
+                print("Payment Type:", pay_type)
+                print("Money:", money)
+                print("Notify URL:", notify_url)
+                print("Return URL:", return_url)
 
             if not all([mch_id, currency, pay_type, money, notify_url, return_url]):
                 return JsonResponse({"error": "Missing required parameters."}, status=400)
-
+            
             # Generate a unique order ID
             payin_order_id = generate_transaction_id()
-            # payin_order_id = 20211012151100001
 
-            # Request parameters
+            # Prepare request parameters for external API
             params = {
                 "mchId": mch_id,
                 "currency": currency,
@@ -224,41 +314,44 @@ def payin_api(request):
                 "notify_url": notify_url,
                 "returnUrl": return_url
             }
- 
 
             # Generate the signature
-            params["sign"] = generate_signature(params, API_KEY)
+            params["sign"] = generate_signature(params, API_KEY2)
+            print("params",params)
+            encoded_data = urlencode(params)
+            print("encoded_data",encoded_data)
+            # Send request to external API (form-encoded)
+            headers = {
+                "Content-Type": "application/x-www-form-urlencoded",
+                "charset": "UTF-8"  # Ensure UTF-8 encoding is specified
+            }
 
-            # Make the API request
-            response = requests.post(PAYIN_API, data=params)
+            # Send POST request
+            response = requests.post(
+                PAYIN_API2,
+                data=encoded_data, 
+                headers=headers
+            )
+            print("response",response.text)
 
+            # Handle external API response
             if response.status_code == 200:
                 response_data = response.json()
-
                 if response_data.get("code") == 0:
-
-                    print("in code 0")
-
-                    # transaction_id = response_data["data"].get("transaction_Id")
-                    payment_url = response_data["data"].get("url")
+                    # Save to MongoDB and respond
                     
-                    timestamp = generate_transaction_id()
-                   
-                    mongo_helper = MongoDBHelper()
-                    payin_collection = mongo_helper.db['payin']  # Explicitly specify the collection
-
-                    # Insert the document into the 'payin' collection
-                    result = payin_collection.insert_one(response_data)
-                    # payin_callback(request,response_data)
                     return JsonResponse({
-                        "success": True, 
-                        "data": dict(response_data.get("data", {}).items()),  # Convert dict_items to a regular dict
-                       
-                    }, status=201)  
+                        "success": True,
+                        "data": response_data.get("data", {})
+                    }, status=201)
                 else:
-                    return JsonResponse({"error": response_data.get("msg")}, status=400)
+                    return JsonResponse({"error": response_data.get("data")}, status=400)
             else:
-                return JsonResponse({"error": "External API request failed.", "details": response.text}, status=response.status_code)
+                return JsonResponse({
+                    "error": "External API request failed.",
+                    "details": response.text
+                }, status=response.status_code)
+
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=500)
     else:
@@ -269,86 +362,104 @@ def payout_api(request):
     if request.method == "POST":
         try:
             # Parse request body
-            body = json.loads(request.body.decode('utf-8'))
+            if request.POST:
+                body_input = request.body.decode('utf-8')  
+                print("body_input",body_input)
+                body = parse_qs(body_input)
+                
 
-            # Required parameters
-            mch_id = body.get("mchId")
-            currency = body.get("currency")
-            pay_type = body.get("pay_type")
-            account = body.get("account")
-            username = body.get("userName")
-            money = body.get("money")
-            notify_url = body.get("notify_url")
-            reserve1 = body.get("reserve1")
+                    
+                mch_id = body.get('mchId', [None])[0]# Default to None if key not found
+                currency = body.get('currency', [None])[0]
+                pay_type = body.get('pay_type', [None])[0]
+                account = body.get('account', [None])[0]
+                money = body.get('money', [None])[0]
+                username = body.get('userName', [None])[0]
 
-            if not all([mch_id, currency, pay_type, account, username, money, notify_url]):
-                return JsonResponse({"error": "Missing required parameters."}, status=400)
+                # Print extracted fields
+                print("Merchant ID:", mch_id)
+                print("Currency:", currency)
+                print("Payment Type:", pay_type)
+                print("Account:", account)
+                print("Money:", money)
+                print("Username:", username)
 
-            # Generate a unique order ID
-            # payin_order_id = str(uuid.uuid4().hex)
-            payin_order_id = generate_transaction_id()
+                
+                
 
-            # Request parameters
-            params = {
-                "mchId": mch_id,
-                "currency": currency,
-                "out_trade_no": payin_order_id,
-                "pay_type": pay_type,
-                "account": account,
-                "userName": username,
-                "money": money,
-                "attach": body.get("attach", ""),
-                "notify_url": notify_url,
-                "reserve1": reserve1
-            }
 
-            # Generate the signature
-            params["sign"] = generate_signature(params, API_KEY)
+                if not all([mch_id, currency, pay_type, account, money,username]):
+                    return JsonResponse({"error": "Missing required parameters."}, status=400)
 
-            # Make the API request
-            response = requests.post(PAYOUT_API, data=params)
+                # Generate a unique order ID
+                # payin_order_id = str(uuid.uuid4().hex)
+                payin_order_id = generate_transaction_id()
 
-            if response.status_code == 200:
-                response_data = response.json()
+                # Request parameters
+                params = {
+                    "mchId": mch_id,
+                    "currency": currency,
+                    "out_trade_no": payin_order_id,
+                    "pay_type": pay_type,
+                    "account": account,
+                    "userName": username,
+                    "money": money,
+                    "attach": body.get("attach", ""),
+                    "notify_url": "callback_payout_url",
+                    # "reserve1": reserve1
+                }
+                
 
-                if response_data.get("code") == 0:
-                    transaction_id = response_data["data"].get("transaction_Id")
+                # Generate the signature
+                params["sign"] = generate_signature(params, API_KEY2)
 
-                    # Prepare data for MongoDB
-                    data = {
-                        "merchant_id": mch_id,
-                        "order_details": {
-                            "order_id": payin_order_id,
-                            "transaction_id": transaction_id,
-                            "currency": currency,
-                            "payment_type": pay_type,
-                            "account": account,
-                            "username": username,
-                            "amount": int(money),
-                            "status": response_data.get("msg"),
-                            "callback_url": notify_url
-                        },
-                        "timestamp": datetime.utcnow().isoformat()
-                    }
-                    print("data",data)  
+                # Make the API request
+                response = requests.post(PAYOUT_API2, data=params)
 
-                    # Insert into MongoDB
-                    # inserted_id = collection.insert_one(data).inserted_id
-                    mongo_helper = MongoDBHelper()
-                    payout_collection = mongo_helper.db['payout']  # Explicitly specify the collection
+                if response.status_code == 200:
+                    response_data = response.json()
+                    print("response_data",response_data)
 
-                    # Insert the document into the 'payin' collection
-                    result = payout_collection.insert_one(data)
+                    if response_data.get("code") == 0:
 
-                    # Convert ObjectId to a string
-                    # inserted_id = str(result.inserted_id)
+                        transaction_id = response_data["data"].get("transaction_Id")
 
-                    # Return a JSON response
-                    return JsonResponse({
-                        "success": True, 
-                        "data": dict(response_data.get("data", {}).items()),
-                       
-                    }, status=201)
+                        # Prepare data for MongoDB
+                        data = {
+                            "merchant_id": mch_id,
+                          
+                                "order_id": payin_order_id,
+                                "transaction_id": transaction_id,
+                                "currency": currency,
+                                "payment_type": pay_type,
+                                "account": account,
+                                "username": username,
+                                "amount": int(money),
+                                "status": response_data.get("msg"),
+                                "callback_url": "callback_payout_url",
+                            
+                            "timestamp": datetime.utcnow().isoformat()
+                        }
+                        # print("data",data)  
+                        
+                        # Insert into MongoDB
+                        # inserted_id = collection.insert_one(data).inserted_id
+                        mongo_helper = MongoDBHelper()
+                        payout_collection = mongo_helper.db['payout']  # Explicitly specify the collection
+
+                        # Insert the document into the 'payin' collection
+                        result = payout_collection.insert_one(data)
+
+                        # Convert ObjectId to a string
+                        inserted_id = str(result.inserted_id)
+                        print("inserted_id",inserted_id)
+
+                        # Return a JSON response
+                        return JsonResponse({
+                            "success": True, 
+                            "data": dict(response_data.get("data", {}).items()),
+                        
+                        }, status=201)
                 else:
                     return JsonResponse({"error": response_data.get("msg")}, status=400)
             else:
@@ -366,61 +477,18 @@ def payin_callback(request):
     print("In payin callback",payin_order_id)
 
     try:
+        print("Raw request body:", request.body)
+        body = json.loads(request.body.decode("utf-8"))
+        print("body load done",body)
+        mongo_helper = MongoDBHelper()
+        payin_collection = mongo_helper.db['payin']
+        result= payin_collection.insert_one(body)
+        inserted_id = str(result.inserted_id)
+        print("inserted_id",inserted_id)
+        print("payin",)
+        return JsonResponse({"success": "success"}, status=200)
+    
        
-        try:
-            body = json.loads(request.body.decode("utf-8"))
-            print("body load done",body)
-        except json.JSONDecodeError:
-            return JsonResponse({"error": "Invalid JSON in request body."}, status=400)
-
-        # Extract required fields from the body
-        try:
-            mch_id = body.get("mchId")
-            currency = body.get("currency")
-            money = body.get("money")
-
-            if not all([mch_id, currency, money]):
-                return JsonResponse({"error": "Missing required parameters."}, status=400)
-        except KeyError as e:
-            return JsonResponse({"error": f"Missing key in request body: {str(e)}"}, status=400)
-
-        try:
-            # Convert and calculate money values
-            money = float(money)
-            merchant_ratio = float(body.get("merchant_ratio", 5))  # Default to 5% if not provided
-            real_money = money - (money * merchant_ratio / 100)
-        except ValueError:
-            return JsonResponse({"error": "Invalid value for money or merchant_ratio."}, status=400)
-
-        # Construct data for callback
-        try:
-            data = {
-                "mch_id": mch_id,
-                "out_trade_no": payin_order_id,  # Ensure this is set globally
-                "currency": currency,
-                "money": money,
-                "attach": "",
-                "pay_money": money,
-                "merchant_ratio": 5,
-                "real_money": f"{real_money:.2f}",
-                "status": 1,
-            }
-            data["sign"] = generate_signature(data, API_KEY)
-            print("data",data)
-        except Exception as e:
-            return JsonResponse({"error": f"Error constructing callback data: {str(e)}"}, status=500)
-        print("done with data",data)
-        # Send the callback request
-        try:
-            response = requests.post(PAYIN_CALLBACK, data=data)
-            response.raise_for_status()  # Raise HTTP errors if any
-            return JsonResponse(response.json(), status=200)
-        except requests.RequestException as e:
-            return JsonResponse({
-                "error": "Failed to send callback request.",
-                "details": str(e),
-            }, status=500)
-
     except Exception as e:
         # Catch-all for unexpected errors
         return JsonResponse({"error": f"Unexpected error: {str(e)}"}, status=500)
