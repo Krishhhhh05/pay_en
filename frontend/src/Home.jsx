@@ -4,6 +4,7 @@ import PayinQuery from './components/PayinQuery';
 import PayinApi from './components/PayinApi';
 import PayoutApi from './components/PayoutApi';
 import PayoutQuery from './components/PayoutQuery';
+import CreateAdmin from './components/CreateAdmin';
 
 const Modal = ({ isOpen, onClose, children }) => {
   if (!isOpen) return null;
@@ -104,6 +105,17 @@ const Home = () => {
         >
           Payout Query
         </button>
+
+        <button
+          className={`px-4 py-2 rounded-t-md text-sm font-medium transition-colors duration-300 ${
+            activeTab === 'payoutQuery'
+              ? 'bg-gray-800 text-white border-b-2 border-blue-500'
+              : 'bg-gray-700 text-gray-300 hover:text-white'
+          }`}
+          onClick={() => setActiveTab('createAdmin')}
+        >
+          Create Admin
+        </button>
       </div>
 
       {/* Tab content */}
@@ -113,6 +125,7 @@ const Home = () => {
         {activeTab === 'payinQuery' && <PayinQuery payinData={payinData} />}
         {activeTab === 'payout' && <PayoutApi payinData={payinData} />}
         {activeTab === 'payoutQuery' && <PayoutQuery payinData={payinData} />}
+        {activeTab === 'createAdmin' && <CreateAdmin />}
 
       </div>
 
