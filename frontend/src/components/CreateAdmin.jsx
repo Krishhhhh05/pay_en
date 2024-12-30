@@ -8,7 +8,7 @@ const CreateAdmin = () => {
   const [showForm, setShowForm] = useState(false);
 
   useEffect(() => {
-    const fetchUsers = async () => {
+    const firstFetchUsers = async () => {
       try {
         const response = await fetch('http://127.0.0.1:8000/myapp/api/get_users');
         const data = await response.json();
@@ -17,9 +17,18 @@ const CreateAdmin = () => {
         console.error('Error fetching users:', error);
       }
     };
+    firstFetchUsers();
+  }, []);
 
-    fetchUsers();
-  }, [users]);
+  const fetchUsers = async () => {
+    try {
+      const response = await fetch('http://127.0.0.1:8000/myapp/api/get_users');
+      const data = await response.json();
+      setUsers(data.users);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -43,7 +52,7 @@ const CreateAdmin = () => {
       setUsername('');
       setPassword('');
       setPercent('');
-      setUsers(users);
+      fetchUsers();
     } catch (error) {
       console.error('Error:', error);
     }
@@ -60,7 +69,7 @@ const CreateAdmin = () => {
           username,
         }),
       });
-      setUsers(users);
+      fetchUsers();
     } catch (error) {
       console.error('Error:', error);
     }
