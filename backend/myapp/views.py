@@ -280,24 +280,29 @@ def payin_api(request):
             if request.POST:
                 body_input = request.body.decode('utf-8')
                 body = parse_qs(body_input)
-                # print(body)
 
-                mch_id = body.get('mchId', [None])[0]# Default to None if key not found
+                print(body)
+
+                mch_id = body.get('mchId', [None])[0]
+                username= body.get('userName', [None])[0]
                 currency = body.get('currency', [None])[0]
                 pay_type = body.get('pay_type', [None])[0]
-                money = body.get('money', [None])[0]
+                money = float(body.get('money', [None])[0])
                 notify_url = body.get('notify_url', [None])[0]
                 return_url = body.get('returnUrl', [None])[0]
+                percent= float(body.get('percent', [None])[0])
 
                 # Print extracted fields
                 print("Merchant ID:", mch_id)
+                print("Username:", username)
+                print("percent:", percent)
                 print("Currency:", currency)
                 print("Payment Type:", pay_type)
                 print("Money:", money)
                 print("Notify URL:", notify_url)
                 print("Return URL:", return_url)
 
-            if not all([mch_id, currency, pay_type, money, notify_url, return_url]):
+            if not all([mch_id, username,currency, pay_type, money, notify_url, return_url]):
                 return JsonResponse({"error": "Missing required parameters."}, status=400)
             
             # Generate a unique order ID
@@ -314,6 +319,8 @@ def payin_api(request):
                 "notify_url": notify_url,
                 "returnUrl": return_url
             }
+            
+            
 
             # Generate the signature
             params["sign"] = generate_signature(params, API_KEY2)
@@ -333,13 +340,38 @@ def payin_api(request):
                 headers=headers
             )
             print("response",response.text)
+            
+            # Calculate real_money
+            real_money = money - (money * (percent / 100))
+            real_money = f"{real_money:.2f}" 
+            print("real money",real_money)
+            
+            data = {
+                "username": username,
+                "money": money,
+                "out_trade_no": payin_order_id,
+                "real_money": real_money,
+                "percent": percent,
+                "currency": currency,
+                "pay_type": pay_type,
+                
+            }
+            
 
             # Handle external API response
             if response.status_code == 200:
                 response_data = response.json()
                 if response_data.get("code") == 0:
-                    # Save to MongoDB and respond
-                    
+                    print("in response")
+                    mongo_helper = MongoDBHelper()
+                    user_db = mongo_helper.db[username]  # Select or create the database named after the username
+
+                    # # Insert the document into the 'payout' collection
+                    result = user_db.insert_one(data)
+
+                    # Convert ObjectId to a string
+                    inserted_id = str(result.inserted_id)
+                    print("inserted_id",inserted_id)
                     return JsonResponse({
                         "success": True,
                         "data": response_data.get("data", {})
@@ -482,6 +514,7 @@ def payin_callback(request):
         print("body load done",body)
         mongo_helper = MongoDBHelper()
         payin_collection = mongo_helper.db['payin']
+
         result= payin_collection.insert_one(body)
         inserted_id = str(result.inserted_id)
         print("inserted_id",inserted_id)

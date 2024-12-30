@@ -2,6 +2,7 @@ import { useState } from 'react';
 import axios from 'axios';
 const PayinApi = () => {
   const [mchId, setMchId] = useState('1701');
+  const [userName, setUserName] = useState('test');
   const [currency, setCurrency] = useState('BDT');
   const [payType, setPayType] = useState('BKASH');
   const [money, setMoney] = useState('1000');
@@ -15,6 +16,8 @@ const PayinApi = () => {
     // URL-encode the body
     const formBody = new URLSearchParams({
       mchId,
+      userName,
+      percent,
       currency,
       pay_type: payType,
       money,
@@ -43,7 +46,9 @@ const PayinApi = () => {
         }
   
         const callbackData =  JSON.stringify({
+
           mchId,
+          userName,
           currency: "BDT",
           money,
           attach: "",
@@ -89,6 +94,17 @@ const PayinApi = () => {
             id="mchId"
             value={mchId}
             onChange={(e) => setMchId(e.target.value)}
+            className="mt-1 p-2 border rounded-md w-full text-black"
+            required
+          />
+        </div>
+        <div>
+          <label htmlFor="userName" className="block text-sm font-medium text-gray-700">UserName</label>
+          <input
+            type="text"
+            id="userName"
+            value={userName}
+            onChange={(e) => setUserName(e.target.value)}
             className="mt-1 p-2 border rounded-md w-full text-black"
             required
           />
